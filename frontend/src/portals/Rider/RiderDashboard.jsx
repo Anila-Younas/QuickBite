@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { useAuth } from '../../context/AuthContext';
 import { LayoutDashboard, LogOut, Zap, Bike, TrendingUp, Truck, Clock, FileClock } from 'lucide-react';
 
@@ -19,7 +20,26 @@ export default function RiderDashboard() {
   useEffect(() => {
     fetchDashboardData();
     const interval = setInterval(fetchDashboardData, 10000); // Refresh every 10 seconds
-    return () => clearInterval(interval);
+    
+    const socket = io('http://localhost:5000');
+    if (user?.id) socket.emit('join_rider_room', user.id);
+    
+    socket.on('new_delivery_request', (data) => {
+       console.log('Real-time: New delivery request', data);
+       fetchDashboardData();
+    });
+    
+    socket.on('rider_assigned', (data) => {
+       if (data.rider_id == user?.id) {
+          console.log('Real-time: Assigned to order', data);
+          fetchDashboardData();
+       }
+    });
+
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
   }, [user, isOnline]);
 
   useEffect(() => {

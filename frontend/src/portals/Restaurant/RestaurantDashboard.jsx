@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 import { LayoutDashboard, Receipt, UtensilsCrossed, Tag, Bike, BarChart3, Star, Settings, Trash2 } from 'lucide-react';
 
 export default function RestaurantDashboard() {
@@ -17,7 +18,19 @@ export default function RestaurantDashboard() {
   useEffect(() => {
     fetchData();
     const int = setInterval(fetchData, 10000);
-    return () => clearInterval(int);
+    
+    const socket = io('http://localhost:5000');
+    socket.emit('join_restaurant_room', headers['x-restaurant-id']);
+    
+    socket.on('new_order_restaurant', (data) => {
+       console.log('Real-time: New order received', data);
+       fetchData();
+    });
+    
+    return () => {
+      clearInterval(int);
+      socket.disconnect();
+    };
   }, []);
 
   const fetchData = async () => {

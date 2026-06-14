@@ -16,30 +16,30 @@ router.post('/order/create', async (req, res) => {
     
     // 1. Create Order
     const orderResult = await conn.execute(`
-      INSERT INTO ORDERS (cust_id, rest_id, total_amount, status, order_date) 
-      VALUES (:1, :2, :3, 'PLACED', TRUNC(SYSDATE)) RETURNING order_id INTO :4
-    `, [customerId, restaurant_id, total_amount, { type: require('oracledb').NUMBER, dir: require('oracledb').BIND_OUT }]);
+      INSERT INTO ORDERS (customer_id, restaurant_id, total_amount, status, created_at, delivery_address) 
+      VALUES (:1, :2, :3, 'PLACED', SYSDATE, :5) RETURNING order_id INTO :4
+    `, [customerId, restaurant_id, total_amount, { type: require('oracledb').NUMBER, dir: require('oracledb').BIND_OUT }, delivery_address]);
     const orderId = orderResult.outBinds[0][0];
 
     // 2. Insert Items
     for (let item of items) {
        await conn.execute(`
-         INSERT INTO ORDER_ITEMS (order_id, menu_item_name, quantity, unit_price) 
+         INSERT INTO ORDER_ITEMS (order_id, item_name, quantity, price) 
          VALUES (:1, :2, :3, :4)
        `, [orderId, item.name, item.quantity, item.price]);
     }
 
     // 3. Payment Record
     await conn.execute(`
-      INSERT INTO PAYMENTS (order_id, order_date, amount, method, status) 
-      VALUES (:1, TRUNC(SYSDATE), :2, :3, 'PENDING')
+      INSERT INTO PAYMENTS (order_id, created_at, amount, payment_method, status) 
+      VALUES (:1, SYSDATE, :2, :3, 'PENDING')
     `, [orderId, total_amount, payment_method || 'CASH']);
 
     // 4. Outbox Event
     const payload = JSON.stringify({ order_id: orderId, status: 'PLACED', total: total_amount, lat, lng });
     await conn.execute(`
-      INSERT INTO OUTBOX_EVENTS (order_id, event_type, payload, is_dispatched) 
-      VALUES (:1, 'ORDER_PLACED', :2, 0)
+      INSERT INTO OUTBOX_EVENTS (aggregate_type, aggregate_id, event_type, payload, is_dispatched) 
+      VALUES ('ORDER', :1, 'ORDER_PLACED', :2, 0)
     `, [orderId, payload]);
 
     await conn.commit();
@@ -68,8 +68,8 @@ router.get('/orders', async (req, res) => {
     const result = await conn.execute(`
       SELECT o.*, r.name as restaurant_name 
       FROM ORDERS o 
-      JOIN RESTAURANTS r ON o.rest_id = r.rest_id 
-      WHERE o.cust_id = :1 
+      JOIN RESTAURANTS r ON o.restaurant_id = r.restaurant_id 
+      WHERE o.customer_id = :1 
       ORDER BY o.order_id DESC
     `, [customerId]);
     res.json(result.rows);
@@ -87,7 +87,7 @@ router.get('/order/:id', async (req, res) => {
     const result = await conn.execute(`
       SELECT o.*, r.name as restaurant_name 
       FROM ORDERS o 
-      JOIN RESTAURANTS r ON o.rest_id = r.rest_id 
+      JOIN RESTAURANTS r ON o.restaurant_id = r.restaurant_id 
       WHERE o.order_id = :1 
     `, [req.params.id]);
     

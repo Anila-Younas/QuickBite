@@ -16,24 +16,24 @@ router.get('/dashboard', async (req, res) => {
       SELECT 
         COUNT(*) as total_orders,
         NVL(SUM(total_amount), 0) as revenue_today,
-        COUNT(CASE WHEN status IN ('PLACED', 'CONFIRMED', 'PREPARING', 'PACKED', 'WAITING_FOR_PICKUP') THEN 1 END) as active_orders,
+        COUNT(CASE WHEN status IN ('PLACED', 'CONFIRMED', 'PREPARING', 'PICKED_UP') THEN 1 END) as active_orders,
         COUNT(CASE WHEN status = 'DELIVERED' THEN 1 END) as completed_orders,
         COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) as cancelled_orders
-      FROM ORDERS WHERE rest_id = :1 AND TRUNC(order_date) = TRUNC(SYSDATE)
+      FROM ORDERS WHERE restaurant_id = :1 AND TRUNC(created_at) = TRUNC(SYSDATE)
     `, [restId]);
 
     const weekly = await conn.execute(`
       SELECT NVL(SUM(total_amount), 0) as revenue_week
-      FROM ORDERS WHERE rest_id = :1 AND order_date >= TRUNC(SYSDATE) - 7
+      FROM ORDERS WHERE restaurant_id = :1 AND created_at >= TRUNC(SYSDATE) - 7
     `, [restId]);
 
     const monthly = await conn.execute(`
       SELECT NVL(SUM(total_amount), 0) as revenue_month
-      FROM ORDERS WHERE rest_id = :1 AND order_date >= TRUNC(SYSDATE) - 30
+      FROM ORDERS WHERE restaurant_id = :1 AND created_at >= TRUNC(SYSDATE) - 30
     `, [restId]);
 
     const db = mongoose.connection.db;
-    const rest = await db.collection('restaurants').findOne({ oracle_rest_id: parseInt(restId) });
+    const rest = await db.collection('restaurants').findOne({ oracle_restaurant_id: parseInt(restId) });
     
     res.json({
       ...result.rows[0],
@@ -57,8 +57,8 @@ router.get('/orders', async (req, res) => {
     const result = await conn.execute(`
       SELECT o.*, u.full_name as customer_name, u.phone
       FROM ORDERS o
-      JOIN USERS u ON o.cust_id = u.user_id
-      WHERE o.rest_id = :1
+      JOIN USERS u ON o.customer_id = u.user_id
+      WHERE o.restaurant_id = :1
       ORDER BY o.order_id DESC
     `, [restId]);
 
@@ -87,13 +87,13 @@ router.put('/order/status/:id', async (req, res) => {
     
     // Call the stored procedure for state machine if it was fully mapped, 
     // or just direct update as required for full control.
-    await conn.execute(`UPDATE ORDERS SET status = :1 WHERE order_id = :2 AND rest_id = :3`, [status, id, restId], { autoCommit: true });
+    await conn.execute(`UPDATE ORDERS SET status = :1 WHERE order_id = :2 AND restaurant_id = :3`, [status, id, restId], { autoCommit: true });
     
     // Log outbox event
     const payload = JSON.stringify({ order_id: id, new_status: status });
     await conn.execute(`
-      INSERT INTO OUTBOX_EVENTS (order_id, event_type, payload, is_dispatched) 
-      VALUES (:1, 'ORDER_STATUS_CHANGED', :2, 0)
+      INSERT INTO OUTBOX_EVENTS (aggregate_type, aggregate_id, event_type, payload, is_dispatched) 
+      VALUES ('ORDER', :1, 'ORDER_STATUS_CHANGED', :2, 0)
     `, [id, payload], { autoCommit: true });
 
     const io = req.app.get('io');
@@ -115,11 +115,10 @@ router.post('/order/assign/:id', async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
-    await conn.execute(`UPDATE ORDERS SET rider_id = :1, status = 'PICKED_UP' WHERE order_id = :2 AND rest_id = :3`, [rider_id, id, restId], { autoCommit: true });
+    await conn.execute(`UPDATE ORDERS SET rider_id = :1 WHERE order_id = :2 AND restaurant_id = :3`, [rider_id, id, restId], { autoCommit: true });
     
     const io = req.app.get('io');
     if (io) {
-      io.to(`order_${id}`).emit('order_update', { order_id: parseInt(id), new_status: 'PICKED_UP' });
       io.emit('rider_assigned', { order_id: id, rider_id });
     }
     
@@ -136,7 +135,7 @@ router.get('/menu', async (req, res) => {
   const restId = parseInt(getRestaurantId(req));
   try {
     const db = mongoose.connection.db;
-    const rest = await db.collection('restaurants').findOne({ oracle_rest_id: restId });
+    const rest = await db.collection('restaurants').findOne({ oracle_restaurant_id: restId });
     res.json(rest ? rest.menu : []);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -149,7 +148,7 @@ router.post('/menu/item', async (req, res) => {
   try {
     const db = mongoose.connection.db;
     await db.collection('restaurants').updateOne(
-      { oracle_rest_id: restId },
+      { oracle_restaurant_id: restId },
       { $push: { menu: item } },
       { upsert: true }
     );
@@ -169,7 +168,7 @@ router.put('/menu/item/:name', async (req, res) => {
   try {
     const db = mongoose.connection.db;
     await db.collection('restaurants').updateOne(
-      { oracle_rest_id: restId, "menu.name": name },
+      { oracle_restaurant_id: restId, "menu.name": name },
       { $set: updateFields }
     );
     res.json({ success: true });
@@ -184,7 +183,7 @@ router.delete('/menu/item/:name', async (req, res) => {
   try {
     const db = mongoose.connection.db;
     await db.collection('restaurants').updateOne(
-      { oracle_rest_id: restId },
+      { oracle_restaurant_id: restId },
       { $pull: { menu: { name } } }
     );
     res.json({ success: true });

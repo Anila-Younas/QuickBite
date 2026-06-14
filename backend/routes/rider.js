@@ -92,7 +92,7 @@ router.get('/active-orders', async (req, res) => {
     conn = await getConnection();
     const result = await conn.execute(`
       SELECT * FROM ORDERS 
-      WHERE rider_id = :1 AND status IN ('CONFIRMED', 'PREPARING', 'PICKED_UP')
+      WHERE rider_id = :1 AND status IN ('CONFIRMED', 'PREPARING', 'WAITING_FOR_PICKUP', 'PICKED_UP')
     `, [riderId]);
     res.json(result.rows);
   } catch (err) {
@@ -132,7 +132,7 @@ router.post('/accept', async (req, res) => {
     if (orderCheck.rows.length === 0) return res.status(404).json({ error: 'Order not found' });
     
     const currentStatus = orderCheck.rows[0].STATUS;
-    if (currentStatus !== 'READY_FOR_PICKUP' && currentStatus !== 'PREPARING') {
+    if (currentStatus !== 'WAITING_FOR_PICKUP' && currentStatus !== 'PREPARING') {
       return res.status(400).json({ error: `Order is not ready for pickup. Current status: ${currentStatus}` });
     }
     
@@ -147,7 +147,7 @@ router.post('/accept', async (req, res) => {
     // Emit socket event
     const io = req.app.get('io');
     if (io) {
-      io.to(`order_${order_id}`).emit('order_status_update', { order_id, new_status: 'PICKED_UP', rider_id: riderId });
+      io.to(`order_${order_id}`).emit('order_update', { order_id: parseInt(order_id), new_status: 'PICKED_UP', rider_id: riderId });
     }
     
     res.json({ success: true });

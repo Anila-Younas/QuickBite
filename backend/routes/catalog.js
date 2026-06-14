@@ -4,7 +4,7 @@ const { mongoose } = require('../db/mongo');
 const router = express.Router();
 
 const RestaurantSchema = new mongoose.Schema({
-  oracle_rest_id: { type: Number, unique: true },
+  oracle_restaurant_id: { type: Number, unique: true },
   name: String,
   city_zone: String,
   location: {
@@ -100,7 +100,7 @@ router.post('/review', async (req, res) => {
     // Update averages
     const restReviews = await Review.find({ restaurant_id });
     const restAvg = restReviews.reduce((acc, r) => acc + (r.restaurant_rating||0), 0) / restReviews.filter(r=>r.restaurant_rating).length;
-    await Restaurant.updateOne({ oracle_rest_id: restaurant_id }, { $set: { avg_rating: restAvg.toFixed(1) } });
+    await Restaurant.updateOne({ oracle_restaurant_id: restaurant_id }, { $set: { avg_rating: restAvg.toFixed(1) } });
     
     // Also update rider rating logic here ideally
     res.json({ success: true });
@@ -110,7 +110,7 @@ router.post('/review', async (req, res) => {
 });
 
 router.get('/:id', async (req, res) => {
-  const rest = await Restaurant.findOne({ oracle_rest_id: parseInt(req.params.id) });
+  const rest = await Restaurant.findOne({ oracle_restaurant_id: parseInt(req.params.id) });
   if (!rest) return res.status(404).json({ error: 'Restaurant not found' });
   res.json(rest);
 });

@@ -95,13 +95,13 @@ export default function CustomerHome() {
             ) : (
               restaurants.map(rest => (
                 <div 
-                  key={rest.oracle_rest_id} 
-                  onClick={() => navigate(`/customer/restaurant/${rest.oracle_rest_id}`)} 
+                  key={rest.oracle_restaurant_id} 
+                  onClick={() => navigate(`/customer/restaurant/${rest.oracle_restaurant_id}`)} 
                   className="bg-white group overflow-hidden rounded-2xl shadow-sm hover:shadow-xl cursor-pointer border border-gray-100 transition-all"
                 >
                   <div className="h-48 bg-gray-200 overflow-hidden relative">
                     <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                         src={`https://source.unsplash.com/random/400x300/?restaurant,food&sig=${rest.oracle_rest_id}`} 
+                         src={`https://source.unsplash.com/random/400x300/?restaurant,food&sig=${rest.oracle_restaurant_id}`} 
                          alt={rest.name} 
                          onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=Food'; }}
                     />

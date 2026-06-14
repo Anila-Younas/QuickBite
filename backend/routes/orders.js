@@ -5,7 +5,7 @@ const router = express.Router();
 
 // Place order (T1)
 router.post('/', async (req, res) => {
-  const { rest_id, items, total_amount, payment_method } = req.body;
+  const { restaurant_id, items, total_amount, payment_method } = req.body;
   const userId = req.headers['x-user-id'] || req.user?.id;
   let conn;
   try {
@@ -13,7 +13,7 @@ router.post('/', async (req, res) => {
     
     const orderSql = `INSERT INTO ORDERS (customer_id, restaurant_id, status, total_amount) 
                       VALUES (:1, :2, 'PLACED', :3) RETURNING order_id INTO :4`;
-    const orderResult = await conn.execute(orderSql, [userId, rest_id, total_amount, { type: require('oracledb').NUMBER, dir: require('oracledb').BIND_OUT }], { autoCommit: false });
+    const orderResult = await conn.execute(orderSql, [userId, restaurant_id, total_amount, { type: require('oracledb').NUMBER, dir: require('oracledb').BIND_OUT }], { autoCommit: false });
     const orderId = orderResult.outBinds[0][0];
 
     for (let item of items) {
@@ -32,7 +32,7 @@ router.post('/', async (req, res) => {
     // Emit socket event for real-time updates
     const io = req.app.get('io');
     if (io) {
-      io.to(`restaurant_${rest_id}`).emit('new_order', { order_id: orderId, customer_id: userId });
+      io.to(`restaurant_${restaurant_id}`).emit('new_order', { order_id: orderId, customer_id: userId });
       io.to(`customer_${userId}`).emit('order_placed', { order_id: orderId });
     }
     
