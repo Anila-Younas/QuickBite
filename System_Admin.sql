@@ -1,0 +1,16 @@
+ALTER SESSION SET "_ORACLE_SCRIPT"=true;
+
+CREATE USER quickbite IDENTIFIED BY QB_Pass_2026
+DEFAULT TABLESPACE USERS
+QUOTA UNLIMITED ON USERS;
+
+GRANT CONNECT, RESOURCE TO quickbite;
+
+CREATE ROLE app_customer;
+CREATE ROLE app_rider;
+CREATE ROLE app_restaurant;
+CREATE ROLE app_admin;
+CREATE ROLE sync_job;
+
+GRANT app_admin TO quickbite;
+GRANT sync_job  TO quickbite;
