@@ -14,11 +14,25 @@ router.post('/order/create', async (req, res) => {
     conn = await getConnection();
     await conn.execute('SAVEPOINT start_order');
     
+    console.log('Order request body:', req.body);
+    
     // 1. Create Order
     const orderResult = await conn.execute(`
       INSERT INTO ORDERS (customer_id, restaurant_id, total_amount, status, created_at, delivery_address) 
-      VALUES (:1, :2, :3, 'PLACED', SYSDATE, :5) RETURNING order_id INTO :4
-    `, [customerId, restaurant_id, total_amount, { type: require('oracledb').NUMBER, dir: require('oracledb').BIND_OUT }, delivery_address]);
+      VALUES (:1, :2, :3, 'PLACED', SYSDATE, :4) 
+      RETURNING order_id INTO :5
+    `, 
+    [
+      customerId, 
+      restaurant_id, 
+      total_amount, 
+      delivery_address, 
+      { type: require('oracledb').NUMBER, dir: require('oracledb').BIND_OUT }
+    ],
+    { autoCommit: false }
+    );
+    
+    console.log('Order result:', orderResult);
     const orderId = orderResult.outBinds[0][0];
 
     // 2. Insert Items
@@ -43,6 +57,23 @@ router.post('/order/create', async (req, res) => {
     `, [orderId, payload]);
 
     await conn.commit();
+
+    // Save order to MongoDB for location tracking
+    const db = mongoose.connection.db;
+    await db.collection('orders').updateOne(
+      { order_id: orderId },
+      {
+        $set: {
+          order_id: orderId,
+          customer_lat: lat,
+          customer_lng: lng,
+          restaurant_id: restaurant_id,
+          status: 'PLACED',
+          created_at: new Date()
+        }
+      },
+      { upsert: true }
+    );
 
     const io = req.app.get('io');
     if (io) {

@@ -25,3 +25,16 @@
     @apply bg-[#E53E3E] text-white border-[#E53E3E];
   }
 }
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 30s linear infinite;
+}

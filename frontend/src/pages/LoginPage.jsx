@@ -23,10 +23,10 @@ export default function LoginPage() {
     }
   };
 
-  const openLogin = (roleName, defaultEmail) => {
+  const openLogin = (roleName) => {
     setSelectedRole(roleName);
-    setEmail(defaultEmail);
-    setPassword('password123'); // Assume default seed password
+    setEmail('');
+    setPassword('');
   };
 
   return (
@@ -84,7 +84,7 @@ export default function LoginPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-7xl">
           {/* Customer */}
-          <div className="group p-6 rounded-[20px] bg-white shadow-lg border border-gray-100 flex flex-col justify-between overflow-hidden relative hover:-translate-y-2 hover:shadow-xl transition-all cursor-pointer" onClick={() => openLogin('Customer', 'ahmed@quickbite.pk')}>
+          <div className="group p-6 rounded-[20px] bg-white shadow-lg border border-gray-100 flex flex-col justify-between overflow-hidden relative hover:-translate-y-2 hover:shadow-xl transition-all cursor-pointer" onClick={() => openLogin('Customer')}>
             <div className="mb-8">
               <div className="w-14 h-14 rounded-xl bg-[#ff6b00]/10 flex items-center justify-center mb-6">
                 <Utensils className="w-8 h-8 text-[#ff6b00]"/>
@@ -103,7 +103,7 @@ export default function LoginPage() {
           </div>
 
           {/* Rider */}
-          <div className="group p-6 rounded-[20px] bg-white shadow-lg border border-gray-100 flex flex-col justify-between overflow-hidden relative hover:-translate-y-2 hover:shadow-xl transition-all cursor-pointer" onClick={() => openLogin('Rider', 'ali@quickbite.pk')}>
+          <div className="group p-6 rounded-[20px] bg-white shadow-lg border border-gray-100 flex flex-col justify-between overflow-hidden relative hover:-translate-y-2 hover:shadow-xl transition-all cursor-pointer" onClick={() => openLogin('Rider')}>
             <div className="mb-8">
               <div className="w-14 h-14 rounded-xl bg-[#0070f3]/10 flex items-center justify-center mb-6">
                 <Bike className="w-8 h-8 text-[#0070f3]"/>
@@ -122,7 +122,7 @@ export default function LoginPage() {
           </div>
 
           {/* Restaurant */}
-          <div className="group p-6 rounded-[20px] bg-white shadow-lg border border-gray-100 flex flex-col justify-between overflow-hidden relative hover:-translate-y-2 hover:shadow-xl transition-all cursor-pointer" onClick={() => openLogin('Restaurant', 'grillhouse@quickbite.pk')}>
+          <div className="group p-6 rounded-[20px] bg-white shadow-lg border border-gray-100 flex flex-col justify-between overflow-hidden relative hover:-translate-y-2 hover:shadow-xl transition-all cursor-pointer" onClick={() => openLogin('Restaurant')}>
             <div className="mb-8">
               <div className="w-14 h-14 rounded-xl bg-[#e11d48]/10 flex items-center justify-center mb-6">
                 <Store className="w-8 h-8 text-[#e11d48]"/>
@@ -141,7 +141,7 @@ export default function LoginPage() {
           </div>
 
           {/* Admin */}
-          <div className="group p-6 rounded-[20px] bg-white shadow-lg border border-gray-100 flex flex-col justify-between overflow-hidden relative hover:-translate-y-2 hover:shadow-xl transition-all cursor-pointer" onClick={() => openLogin('Admin', 'admin@quickbite.pk')}>
+          <div className="group p-6 rounded-[20px] bg-white shadow-lg border border-gray-100 flex flex-col justify-between overflow-hidden relative hover:-translate-y-2 hover:shadow-xl transition-all cursor-pointer" onClick={() => openLogin('Admin')}>
             <div className="mb-8">
               <div className="w-14 h-14 rounded-xl bg-[#4f378a]/10 flex items-center justify-center mb-6">
                 <BarChart className="w-8 h-8 text-[#4f378a]"/>

@@ -2,6 +2,8 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
+import RestaurantsPage from './pages/RestaurantsPage';
+import OffersPage from './pages/OffersPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './index.css';
 
@@ -31,7 +33,19 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!user) return <Navigate to="/login" />;
-  if (allowedRole && user.role !== allowedRole) return <Navigate to="/" />; // Redirect unauthorized
+  
+  // Strict role validation - redirect to appropriate portal if role doesn't match
+  if (allowedRole && user.role !== allowedRole) {
+    // Redirect to the correct portal based on user's actual role
+    switch(user.role) {
+      case 'CUSTOMER': return <Navigate to="/customer/home" replace />;
+      case 'RESTAURANT': return <Navigate to="/restaurant/dashboard" replace />;
+      case 'RIDER': return <Navigate to="/rider/dashboard" replace />;
+      case 'ADMIN': return <Navigate to="/admin/dashboard" replace />;
+      default: return <Navigate to="/login" replace />;
+    }
+  }
+  
   return children;
 };
 
@@ -57,11 +71,14 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/" element={<RoleRedirect />} />
+          <Route path="/restaurants" element={<RestaurantsPage />} />
+          <Route path="/offers" element={<OffersPage />} />
 
           {/* Customer Portal */}
           <Route path="/customer/home" element={<ProtectedRoute allowedRole="CUSTOMER"><CustomerHome /></ProtectedRoute>} />
           <Route path="/customer/restaurant/:id" element={<ProtectedRoute allowedRole="CUSTOMER"><RestaurantMenu /></ProtectedRoute>} />
           <Route path="/customer/tracking/:id" element={<ProtectedRoute allowedRole="CUSTOMER"><OrderTracking /></ProtectedRoute>} />
+          <Route path="/tracking/:id" element={<ProtectedRoute allowedRole="CUSTOMER"><OrderTracking /></ProtectedRoute>} />
           <Route path="/customer/history" element={<ProtectedRoute allowedRole="CUSTOMER"><OrderHistory /></ProtectedRoute>} />
 
           {/* Restaurant Portal */}

@@ -318,7 +318,7 @@ async function initMongo() {
       console.log('Inserting sample restaurants...');
       await restaurants.insertMany([
         {
-          oracle_rest_id: 1,
+          oracle_restaurant_id: 1,
           name: 'Namal Cafe',
           city_zone: 'Mianwali-Central',
           location: { type: 'Point', coordinates: [71.8234, 32.5967] },
@@ -335,7 +335,7 @@ async function initMongo() {
           opening_hours: { open: '07:00', close: '23:00' }
         },
         {
-          oracle_rest_id: 2,
+          oracle_restaurant_id: 2,
           name: 'Pizza Corner',
           city_zone: 'Mianwali-Central',
           location: { type: 'Point', coordinates: [71.8100, 32.5900] },
@@ -351,7 +351,7 @@ async function initMongo() {
           opening_hours: { open: '12:00', close: '01:00' }
         },
         {
-          oracle_rest_id: 3,
+          oracle_restaurant_id: 3,
           name: 'Bundu Khan',
           city_zone: 'Lahore-Gulberg',
           location: { type: 'Point', coordinates: [74.3587, 31.5122] },

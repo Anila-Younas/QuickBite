@@ -26,33 +26,23 @@ const Header = () => {
         </nav>
       </div>
 
-      <div className="flex-1 max-w-xl mx-8 relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-gray-400" />
-        </div>
-        <input
-          type="text"
-          className="block w-full pl-10 pr-3 py-2 border border-transparent rounded-full leading-5 bg-gray-100 placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#E53E3E] focus:border-[#E53E3E] sm:text-sm"
-          placeholder="Search for restaurants or dishes..."
-        />
-      </div>
-
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <MapPin className="h-4 w-4 text-[#E53E3E]" />
-          <span>San Francisco, CA</span>
         </div>
         <div className="flex items-center gap-4">
-          <Link to="/tracking/1" className="text-gray-600 hover:text-gray-900">
-            <ShoppingBag className="h-5 w-5" />
-          </Link>
+          {user?.role === 'CUSTOMER' && (
+            <Link to="/customer/history" className="text-gray-600 hover:text-gray-900">
+              <ShoppingBag className="h-5 w-5" />
+            </Link>
+          )}
           <button className="text-gray-600 hover:text-gray-900">
             <Bell className="h-5 w-5" />
           </button>
           
           <div className="flex items-center gap-3 ml-4 border-l pl-4 border-gray-200">
             <div className="flex flex-col items-end">
-              <span className="text-sm font-medium text-gray-900">{user?.full_name || 'Guest'}</span>
+              <span className="text-sm font-medium text-gray-900">{user?.full_name || 'Customer'}</span>
               <span className="text-xs text-gray-500">{user?.role}</span>
             </div>
             <button 

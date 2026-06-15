@@ -9,16 +9,8 @@ export default function CustomerHome() {
   const [restaurants, setRestaurants] = useState([]);
   const [search, setSearch] = useState('');
   const [offers, setOffers] = useState([]);
-  const [location, setLocation] = useState(null);
 
   useEffect(() => {
-    // Get user location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((pos) => {
-        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      });
-    }
-
     // Fetch Offers
     axios.get('http://localhost:5000/catalog/offers')
       .then(res => setOffers(res.data))
@@ -29,12 +21,6 @@ export default function CustomerHome() {
     const fetchRestaurants = async () => {
       try {
         let url = `http://localhost:5000/catalog/nearby?search=${search}`;
-        if (location) {
-          url += `&lat=${location.lat}&lng=${location.lng}`;
-        } else {
-          // Default Mianwali location if no permission
-          url += `&lat=32.5967&lng=71.8234`;
-        }
         const res = await axios.get(url);
         setRestaurants(res.data);
       } catch (err) {
@@ -45,7 +31,7 @@ export default function CustomerHome() {
       fetchRestaurants();
     }, 300);
     return () => clearTimeout(timer);
-  }, [search, location]);
+  }, [search]);
 
   return (
     <div className="bg-[#FCF8F5] min-h-screen text-gray-900 font-sans">
@@ -65,23 +51,57 @@ export default function CustomerHome() {
                     className="w-full text-lg p-4 pl-6 border border-gray-300 rounded-full shadow-sm focus:ring-[#f97316] focus:border-[#f97316]"
                 />
             </div>
-            {location && <p className="text-sm text-gray-500 mt-2">Using your real-time location to find nearby spots.</p>}
         </div>
 
-        {/* Offers Section */}
+        {/* Offers Section - Scrolling Banner */}
         {offers.length > 0 && (
         <section className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">Active Offers</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {offers.map(off => (
-                    <div key={off._id} className="bg-orange-100 p-6 rounded-2xl shadow-sm border border-orange-200 flex items-center justify-between cursor-pointer" onClick={() => navigate(`/customer/restaurant/${off.restaurant_id}`)}>
-                        <div>
-                            <h3 className="font-bold text-lg text-orange-800">{off.title}</h3>
-                            <p className="text-orange-600">{off.restaurant_name} • {off.discount_pct}% OFF</p>
-                        </div>
-                        <Tag className="w-10 h-10 text-orange-500"/>
+            <h2 className="text-3xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                <span className="text-[#f97316]"></span>
+                Special Offers
+            </h2>
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#f97316] to-[#ea580c] shadow-xl">
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/food.png')] opacity-20"></div>
+                <div className="relative">
+                    <div className="flex animate-scroll" style={{ animationDuration: `${offers.length * 8}s` }}>
+                        {[...offers, ...offers, ...(offers.length < 3 ? offers : [])].map((off, idx) => (
+                            <div 
+                                key={`${off._id || idx}-${idx}`} 
+                                className="flex-shrink-0 w-72 mx-3 my-5 cursor-pointer hover:scale-105 transition-all duration-300"
+                                onClick={() => navigate(`/customer/restaurant/${off.restaurant_id}`)}
+                            >
+                                <div className="bg-white rounded-xl p-5 shadow-xl border-3 border-white/30">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="bg-gradient-to-r from-orange-100 to-red-100 text-orange-700 px-3 py-1 rounded-full text-base font-extrabold shadow-sm">
+                                            {off.discount_pct}% OFF
+                                        </span>
+                                        <span className="text-xs font-semibold text-gray-500 flex items-center gap-1">
+                                            <span>🍴</span>
+                                            {off.restaurant_name}
+                                        </span>
+                                    </div>
+                                    <h3 className="font-extrabold text-xl text-gray-900 mb-2">{off.title}</h3>
+                                    <p className="text-gray-600 leading-relaxed line-clamp-3">{off.description}</p>
+                                    <div className="mt-4 flex items-center gap-2 text-orange-600 font-bold text-sm">
+                                        <span>Order Now</span>
+                                        <span>→</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                ))}
+                </div>
+                <style>{`
+                    @keyframes scroll {
+                        0% { transform: translateX(0); }
+                        100% { transform: translateX(-50%); }
+                    }
+                    .animate-scroll {
+                        display: flex;
+                        width: max-content; /* Ensure it takes full content width */
+                        animation: scroll linear infinite;
+                    }
+                `}</style>
             </div>
         </section>
         )}
@@ -101,9 +121,34 @@ export default function CustomerHome() {
                 >
                   <div className="h-48 bg-gray-200 overflow-hidden relative">
                     <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                         src={`https://source.unsplash.com/random/400x300/?restaurant,food&sig=${rest.oracle_restaurant_id}`} 
+                         src={rest.image_url || `https://images.unsplash.com/photo-${1517248135 + rest.oracle_restaurant_id * 100}?w=400&h=300&fit=crop`} 
                          alt={rest.name} 
-                         onError={(e) => { e.target.src = 'https://via.placeholder.com/400x300?text=Food'; }}
+                         onError={(e) => { 
+                           // Use restaurant-specific images based on restaurant ID to ensure uniqueness
+                           const restaurantImages = {
+                             1: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
+                             2: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=300&fit=crop',
+                             3: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400&h=300&fit=crop',
+                             4: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&h=300&fit=crop',
+                             5: 'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=400&h=300&fit=crop'
+                           };
+                           // Use restaurant ID to get unique image, fallback to cuisine-based image
+                           const fallbackImages = {
+                             'Fast Food': 'https://images.unsplash.com/photo-1571091718767-18b5b1457add?w=400&h=300&fit=crop',
+                             'Pakistani': 'https://images.unsplash.com/photo-1585937421612-70a008356f36?w=400&h=300&fit=crop',
+                             'BBQ': 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=300&fit=crop',
+                             'Chinese': 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400&h=300&fit=crop',
+                             'Italian': 'https://images.unsplash.com/photo-1595295333158-4742f28fbd85?w=400&h=300&fit=crop'
+                           };
+                           const cuisine = rest.cuisine?.[0];
+                           if (restaurantImages[rest.oracle_restaurant_id]) {
+                             e.target.src = restaurantImages[rest.oracle_restaurant_id];
+                           } else if (cuisine && fallbackImages[cuisine]) {
+                             e.target.src = fallbackImages[cuisine];
+                           } else {
+                             e.target.src = `https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop&sig=${rest.oracle_restaurant_id}`;
+                           }
+                         }}
                     />
                     <div className="absolute top-3 left-3 bg-white px-2 py-1 rounded-lg text-xs font-bold shadow-md">
                         {rest.distance_meters ? `${(rest.distance_meters / 1000).toFixed(1)} km` : (rest.city_zone || 'Local')}

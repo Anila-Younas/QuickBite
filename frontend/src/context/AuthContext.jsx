@@ -6,18 +6,30 @@ const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [user, setUser] = useState(() => {
+    try {
+      // Use sessionStorage for session isolation across tabs
+      const stored = sessionStorage.getItem('user');
+      const parsedUser = stored ? JSON.parse(stored) : null;
+      // Validate that the user has a role
+      if (parsedUser && !parsedUser.role) {
+        console.warn('[AuthContext] User data missing role, clearing sessionStorage');
+        sessionStorage.removeItem('user');
+        return null;
+      }
+      console.log('[AuthContext] Loaded user from sessionStorage:', parsedUser?.role, parsedUser?.email);
+      return parsedUser;
+    } catch (err) {
+      console.error('[AuthContext] Error parsing user from sessionStorage:', err);
+      sessionStorage.removeItem('user');
+      return null;
+    }
+  });
+  const [token, setToken] = useState(sessionStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (token) {
-      // In a real app, verify token with backend or decode it
-      // For now, we'll rely on the user object stored in localStorage
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
-      }
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
     setLoading(false);
@@ -29,8 +41,9 @@ export const AuthProvider = ({ children }) => {
       const { token, user } = response.data;
       setToken(token);
       setUser(user);
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      // Use sessionStorage for session isolation across tabs
+      sessionStorage.setItem('token', token);
+      sessionStorage.setItem('user', JSON.stringify(user));
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       return { success: true };
     } catch (error) {
@@ -51,8 +64,9 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    // Clear sessionStorage instead of localStorage
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     delete axios.defaults.headers.common['Authorization'];
   };
 

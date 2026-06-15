@@ -56,11 +56,27 @@ router.get('/:id', requireAuth(['CUSTOMER', 'RESTAURANT', 'RIDER', 'ADMIN']), as
     
     const itemsResult = await conn.execute(`SELECT item_name, quantity, price FROM ORDER_ITEMS WHERE order_id = :1`, [req.params.id]);
     
+    // Get additional data from MongoDB
+    const db = require('../db/mongo').mongoose.connection.db;
+    let mongoOrder = null;
+    let restaurant = null;
+    let riderLocation = null;
+    
+    mongoOrder = await db.collection('orders').findOne({ order_id: parseInt(req.params.id) });
+    restaurant = await db.collection('restaurants').findOne({ oracle_restaurant_id: orderResult.rows[0].RESTAURANT_ID });
+    if (orderResult.rows[0].RIDER_ID) {
+      riderLocation = await db.collection('riderlocations').findOne({ oracle_rider_id: parseInt(orderResult.rows[0].RIDER_ID) });
+    }
+    
     res.json({
       ...orderResult.rows[0],
-      items: itemsResult.rows
+      items: itemsResult.rows,
+      customer_location: mongoOrder ? { lat: mongoOrder.customer_lat, lng: mongoOrder.customer_lng } : null,
+      restaurant_location: restaurant?.location,
+      rider_location: riderLocation?.location
     });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   } finally {
     if (conn) await conn.close();
@@ -146,8 +162,9 @@ router.post('/:id/status', async (req, res) => {
     const validTransitions = {
       'PLACED': ['CONFIRMED', 'CANCELLED'],
       'CONFIRMED': ['PREPARING', 'CANCELLED'],
-      'PREPARING': ['READY_FOR_PICKUP', 'CANCELLED'],
-      'READY_FOR_PICKUP': ['PICKED_UP'],
+      'PREPARING': ['PACKED', 'CANCELLED'],
+      'PACKED': ['WAITING_FOR_PICKUP', 'CANCELLED'],
+      'WAITING_FOR_PICKUP': ['PICKED_UP', 'CANCELLED'],
       'PICKED_UP': ['DELIVERED'],
       'DELIVERED': [],
       'CANCELLED': []

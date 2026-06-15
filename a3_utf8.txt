@@ -342,7 +342,7 @@ db.restaurants.createIndex(
  
 // 2. riderlocations collection (2dsphere for GPS and TTL for auto-expiry) 
 db.riderlocations.createIndex( 
-  { location: '2dsphere' }, 
+  { location: '' 2dsphere}, 
   { name: 'idx_rider_geo' } 
 ) 
 db.riderlocations.createIndex( 
